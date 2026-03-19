@@ -4,7 +4,7 @@ import type { Celda } from '../Utils/celda';
 
 type Props = {
     cell : Celda;
-    onClick?: () => void;
+    onClick: (fila: number, col: number) => void;
 };
 
 
@@ -12,7 +12,7 @@ type Props = {
 const CeldaComponent =({cell,onClick  }: Props)=>{    
     const idCell = `${cell.fila}-${cell.columna}`;    
     return(
-        <div id= {idCell} className={`cell ${cell.revelado ? "open" : ""}`} onClick={onClick}></div>
+        <div id= {idCell} className={`cell ${cell.revelado ? "open" : ""}`} onClick={() => onClick?.(cell.fila, cell.columna)}></div>
     );
 };
 

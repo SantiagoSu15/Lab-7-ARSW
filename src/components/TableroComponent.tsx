@@ -6,7 +6,8 @@ import CeldaComponent from './Celda';
 
 type props ={
     board: Celda[][];                      
-    onClickCelda: (fila: number, col: number) => void;
+    onClickCelda: () => void;
+
 }
 
 
@@ -23,7 +24,7 @@ export const TableroComponent = ({ board, onClickCelda }: props) =>{
                 <CeldaComponent
                     key={`${i}-${j}`}
                     cell={cell}
-                    onClick={() => onClickCelda(i, j)}
+                    onClick={onClickCelda}
                 />
             ))
         }
