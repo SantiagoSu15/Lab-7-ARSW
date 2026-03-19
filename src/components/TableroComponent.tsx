@@ -4,22 +4,26 @@ import type { Celda } from '../Utils/celda';
 import React from "react";
 import CeldaComponent from './Celda';
 
+type props ={
+    board: Celda[][];                      
+    onClickCelda: (fila: number, col: number) => void;
+}
 
-export const TableroComponent = () =>{
+
+export const TableroComponent = ({ board, onClickCelda }: props) =>{
     const size = 21;
 
-    const [celdas]  = useState<Celda[][]>(
-        () => crearTablero(size) 
-    );
+   
 
     return (
         <div id = "board" style={{ "--size": size } as React.CSSProperties}>
         {
-            celdas.map((fila,i) =>
+            board.map((fila,i) =>
                 fila.map((cell,j)=>
                 <CeldaComponent
                     key={`${i}-${j}`}
                     cell={cell}
+                    onClick={() => onClickCelda(i, j)}
                 />
             ))
         }

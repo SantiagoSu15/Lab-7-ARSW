@@ -4,23 +4,15 @@ import type { Celda } from '../Utils/celda';
 
 type Props = {
     cell : Celda;
+    onClick?: () => void;
 };
 
 
 
-const CeldaComponent =({cell }: Props)=>{    
-
-    const [celda,setCelda] = useState(cell);
-
-    function pintar (){
-        setCelda({...celda,revelado: !celda.revelado})
-    }
-
-
-
-    const idCell = `${celda.fila}-${celda.columna}`;    
+const CeldaComponent =({cell,onClick  }: Props)=>{    
+    const idCell = `${cell.fila}-${cell.columna}`;    
     return(
-        <div id= {idCell} className={`cell ${celda.revelado ? "open" : ""}`} onClick={()=>pintar()}></div>
+        <div id= {idCell} className={`cell ${cell.revelado ? "open" : ""}`} onClick={onClick}></div>
     );
 };
 

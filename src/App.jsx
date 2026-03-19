@@ -3,7 +3,11 @@ import './App.css'
 import { useEffect, useRef, useState } from 'react'
 import { createStompClient, subscribeBlueprint } from './lib/stompClient.js'
 import { createSocket } from './lib/socketIoClient.js'
-import Tablero from './components/TableroComponent'
+import TableroComponent from './components/TableroComponent'
+import { crearTablero } from './Utils/crearTablero'
+
+
+
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080' // Spring
 const IO_BASE  = import.meta.env.VITE_IO_BASE  ?? 'http://localhost:3001' // Node/Socket.IO
 
@@ -11,6 +15,8 @@ export default function App() {
   const [tech, setTech] = useState('stomp')
   const [author, setAuthor] = useState('juan')
   const [name, setName] = useState('plano-1')
+  const [board, setBoard] = useState(crearTablero(21))
+
   const canvasRef = useRef(null)
 
   const stompRef = useRef(null)
@@ -20,18 +26,34 @@ export default function App() {
   useEffect(() => {
     fetch(`${tech==='stomp'?API_BASE:IO_BASE}/api/blueprints/${author}/${name}`)
       .then(r=>r.json())
-      .then(drawAll)
+      .then(data => drawAll(data))
   }, [tech, author, name])
 
-  function drawAll(bp) {
-    const ctx = canvasRef.current?.getContext('2d')
-    if (!ctx) return
-    ctx.clearRect(0,0,600,400)
-    ctx.beginPath()
-    bp.points.forEach((p,i)=> {
-      if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y)
-    })
-    ctx.stroke()
+  function drawAll(upd) {
+    if(!upd){
+      return;
+    }
+    setBoard(prev => {
+      return prev.map((row, y) =>
+        row.map((cell, x) => {
+          const match = upd.points.some(p => p.x === x && p.y === y);
+    
+          return match
+            ? { ...cell, revelado: true }
+            : cell;
+        })
+      );
+    });
+  }
+
+  function pintarCelda(fil,col){
+    setBoard(prev =>
+      prev.map((row, y) =>
+        row.map((cell, x) =>
+          x === col && y === fil ? { ...cell, revelado: !cell.revelado } : cell
+        )
+      )
+    );
   }
 
   useEffect(() => {
@@ -62,15 +84,18 @@ export default function App() {
     }
   }, [tech, author, name])
 
-  function onClick(e) {
-    const rect = e.target.getBoundingClientRect()
-    const point = { x: Math.round(e.clientX - rect.left), y: Math.round(e.clientY - rect.top) }
-
+  function handleClickCelda(fila, col) {
+    const point = { x: col, y: fila };
+    pintarCelda(fila,col)
+  
     if (tech === 'stomp' && stompRef.current?.connected) {
-      stompRef.current.publish({ destination: '/app/draw', body: JSON.stringify({ author, name, point }) })
+      stompRef.current.publish({
+        destination: '/app/draw',
+        body: JSON.stringify({ author, name, point })
+      });
     } else if (tech === 'socketio' && socketRef.current?.connected) {
-      const room = `blueprints.${author}.${name}`
-      socketRef.current.emit('draw-event', { room, author, name, point })
+      const room = `blueprints.${author}.${name}`;
+      socketRef.current.emit('draw-event', { room, author, name, point });
     }
   }
 
@@ -86,8 +111,7 @@ export default function App() {
         <input value={author} onChange={e=>setAuthor(e.target.value)} placeholder="autor"/>
         <input value={name} onChange={e=>setName(e.target.value)} placeholder="plano"/>
       </div>
-      <Tablero />
-      <p style={{opacity:.7, marginTop:8}}>Tip: abre 2 pestañas y dibuja alternando para ver la colaboración.</p>
+      <TableroComponent  board={board} onClickCelda={handleClickCelda} />
     </div>
   )
 }
