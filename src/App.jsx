@@ -5,6 +5,9 @@ import { createStompClient, subscribeBlueprint } from './lib/stompClient.js'
 import { createSocket } from './lib/socketIoClient.js'
 import TableroComponent from './components/TableroComponent'
 import { crearTablero } from './Utils/crearTablero'
+import { BarraIzq } from './components/BarraIzquierda'
+import {drawAll,pintarCelda} from './Utils/pintar.js'
+import { bluePrintApi } from '../services/apiConection.js'
 
 
 
@@ -17,44 +20,53 @@ export default function App() {
   const [name, setName] = useState('plano-1')
   const [board, setBoard] = useState(crearTablero(21))
 
-  const canvasRef = useRef(null)
 
   const stompRef = useRef(null)
   const unsubRef = useRef(null)
   const socketRef = useRef(null)
 
-  useEffect(() => {
-    fetch(`${tech==='stomp'?API_BASE:IO_BASE}/api/blueprints/${author}/${name}`)
-      .then(r=>r.json())
-      .then(data => drawAll(data))
-  }, [tech, author, name])
 
-  function drawAll(upd) {
-    if(!upd){
-      return;
+  useEffect(()=>{
+    const bluePrintRequest = {
+      autor: 'juan',
+      bName: 'plano-1',
+      puntos: [[0,0], [1,1]]
+    };
+    async function primer(){
+      await bluePrintApi.createBluePoint(bluePrintRequest)
     }
-    setBoard(prev => {
-      return prev.map((row, y) =>
-        row.map((cell, x) => {
-          const match = upd.points.some(p => p.x === x && p.y === y);
-    
-          return match
-            ? { ...cell, revelado: true }
-            : cell;
-        })
-      );
-    });
-  }
 
-  function pintarCelda(fil,col){
-    setBoard(prev =>
-      prev.map((row, y) =>
-        row.map((cell, x) =>
-          x === col && y === fil ? { ...cell, revelado: !cell.revelado } : cell
-        )
-      )
-    );
-  }
+    try{
+      primer()
+
+    }catch(err){
+      console.log(console.error(err))
+    }
+  },[]);
+
+
+
+
+
+  useEffect(() => {
+    async function  cargar (){
+      if(!name){
+        const res = await bluePrintApi.getByAuthor(author);
+        const firstKey = Object.keys(res)[0];
+        const firstBlueprint = res[firstKey];
+        drawAll(firstBlueprint, setBoard);
+        return;
+       }
+      if(name && author){
+        const res = await bluePrintApi.getByAuthorAndBname(author,name);
+        drawAll(res, setBoard);
+      }
+    }
+    cargar();
+  }, [author, name]);
+
+
+
 
   useEffect(() => {
     unsubRef.current?.(); unsubRef.current = null
@@ -84,9 +96,12 @@ export default function App() {
     }
   }, [tech, author, name])
 
+
+
+
   function handleClickCelda(fila, col) {
     const point = { x: col, y: fila };
-    pintarCelda(fila,col)
+    pintarCelda(fila,col,setBoard)
   
     if (tech === 'stomp' && stompRef.current?.connected) {
       stompRef.current.publish({
@@ -100,18 +115,13 @@ export default function App() {
   }
 
   return (
-    <div style={{fontFamily:'Inter, system-ui', padding:16, maxWidth:900}}>
-      <h2>BluePrints RT – Socket.IO vs STOMP</h2>
-      <div style={{display:'flex', gap:8, alignItems:'center', marginBottom:8}}>
-        <label>Tecnología:</label>
-        <select value={tech} onChange={e=>setTech(e.target.value)}>
-          <option value="stomp">STOMP (Spring)</option>
-          <option value="socketio">Socket.IO (Node)</option>
-        </select>
-        <input value={author} onChange={e=>setAuthor(e.target.value)} placeholder="autor"/>
-        <input value={name} onChange={e=>setName(e.target.value)} placeholder="plano"/>
-      </div>
-      <TableroComponent  board={board} onClickCelda={handleClickCelda} />
+    <div id="app-container">
+    <BarraIzq tech={tech} setTech={setTech} author={author}  setAuthor={setAuthor}name={name} setName={setName}/>
+    <div id="tablero-container">
+      <TableroComponent board={board} onClickCelda={handleClickCelda} />
     </div>
+  </div>
   )
 }
+
+
