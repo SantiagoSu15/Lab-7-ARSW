@@ -225,3 +225,4 @@ curl http://localhost:3001/api/blueprints/juan/plano-1
 ---
 
 ## autores
+santiago suarez, juan felipe rangel
