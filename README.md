@@ -282,6 +282,17 @@ curl http://localhost:8080/blueprints/juan/plano-1
 | **Debugging** | Browser DevTools + logs | Logs + message broker UI |
 
 ---
+## Video
+
+https://github.com/user-attachments/assets/a08cbc36-8439-493a-ac42-e2eab89f2097
+
+* Se uso una version sin seguridad JWT del laboratorio num 6 en una rama aparte
+* Ambos usuarios tienen que estar en la misma tecnologia, tablero y autor para notar los cambios en tiempo real
+* Automaticamente si se cambia de autor/tablero cambia el dibujo (Si existe un tablero asociado a esos datos, de lo contrario se mantiene el anterior)
+* Si se crea un nuevo tablero pero no se ha guardado ningun usuario lo podra ver hasta que este sea guardado en caso de entrar solo mirara los cambios parciales
+  
+
+---
 
 ## autores
 santiago suarez, juan felipe rangel
