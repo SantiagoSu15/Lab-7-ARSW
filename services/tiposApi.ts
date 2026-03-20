@@ -4,7 +4,7 @@ export interface points{
 }
 
 export interface bluePrintRequest{
-    autor : String,
-    bName : String,
-    puntos: [number, number][];
+    author : String,
+    name : String,
+    points: [number, number][];
 }

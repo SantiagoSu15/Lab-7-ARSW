@@ -1,6 +1,6 @@
 import './App.css'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { createStompClient, subscribeBlueprint } from './lib/stompClient.js'
 import { createSocket } from './lib/socketIoClient.js'
 import TableroComponent from './components/TableroComponent'
@@ -19,6 +19,9 @@ export default function App() {
   const [author, setAuthor] = useState('juan')
   const [name, setName] = useState('plano-1')
   const [board, setBoard] = useState(crearTablero(21))
+
+
+
   const initialized = useRef(false)
 
 
@@ -31,9 +34,9 @@ export default function App() {
     if (initialized.current) return  
     initialized.current = true
     const bluePrintRequest = {
-      autor: 'juan',
-      bName: 'plano-1',
-      puntos: [[0,0], [1,1]]
+      author: 'juan',
+      name: 'plano-1',
+      points: [[0,0], [1,1]]
     };
     async function primer(){
       await bluePrintApi.createBluePoint(bluePrintRequest)
@@ -105,7 +108,8 @@ export default function App() {
   function handleClickCelda(fila, col) {
     const point = { x: col, y: fila };
     pintarCelda(fila,col,setBoard)
-  
+    console.log('point enviado:', point)
+
     if (tech === 'stomp' && stompRef.current?.connected) {
       stompRef.current.publish({
         destination: '/app/draw',
@@ -117,9 +121,16 @@ export default function App() {
     }
   }
 
+  const puntos = board.flatMap((row, y) =>
+    row
+      .map((cell, x) => ({ cell, x }))        // primero guarda el x real
+      .filter(({ cell }) => cell.revelado)    // luego filtra
+      .map(({ x }) => ({ x, y }))            // y usa el x real
+  )
+
   return (
     <div id="app-container">
-    <BarraIzq tech={tech} setTech={setTech} author={author}  setAuthor={setAuthor}name={name} setName={setName}/>
+    <BarraIzq tech={tech} setTech={setTech} author={author}  setAuthor={setAuthor}name={name} setName={setName} puntos={puntos}/>
     <div id="tablero-container">
       <TableroComponent board={board} onClickCelda={handleClickCelda} />
     </div>
