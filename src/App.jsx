@@ -60,12 +60,12 @@ export default function App() {
         const res = await bluePrintApi.getByAuthor(author);
         const firstKey = Object.keys(res)[0];
         const firstBlueprint = res[firstKey];
-        drawAll(firstBlueprint, setBoard);
+        drawAll(firstBlueprint, setBoard, { replace: true });
         return;
        }
       if(name && author){
         const res = await bluePrintApi.getByAuthorAndBname(author,name);
-        drawAll(res, setBoard);
+        drawAll(res, setBoard, { replace: true });
       }
     }
     cargar();
@@ -84,7 +84,7 @@ export default function App() {
       stompRef.current = client
       client.onConnect = () => {
         unsubRef.current = subscribeBlueprint(client, author, name, (upd)=> {
-          drawAll({ points: upd.points },setBoard)
+          drawAll({ points: upd.points }, setBoard, { replace: false })
         })
       }
       client.activate()
@@ -93,7 +93,7 @@ export default function App() {
       socketRef.current = s
       const room = `blueprints.${author}.${name}`
       s.emit('join-room', room)
-      s.on('blueprint-update', (upd)=> drawAll({ points: upd.points },setBoard))
+      s.on('blueprint-update', (upd)=> drawAll({ points: upd.points }, setBoard, { replace: false }))
     }
     return () => {
       unsubRef.current?.(); unsubRef.current = null

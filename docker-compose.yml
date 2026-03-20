@@ -1,24 +1,39 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8080
+        VITE_API_BASE: http://localhost:8080
+        VITE_IO_BASE: http://localhost:3001
+        VITE_STOMP_BASE: http://localhost:8080
     ports:
       - '5173:4173'
+    depends_on:
+      - ws
+      - backend
+
+  ws:
+    build:
+      context: ./server
+    ports:
+      - '3001:3001'
     environment:
-      - VITE_API_BASE_URL=http://backend:8080/api
+      - PORT=3001
     depends_on:
       - backend
+
   backend:
-    image: ghcr.io/santiagosu15/lab-5-arsw:latest
+    image: ghcr.io/santiagosu15/lab-5-arsw/java-app:lab-7
     ports:
       - '8080:8080'
     environment:
-    - VITE_API_BASE_URL=http://backend:8080
-    - SPRING_DATASOURCE_URL=jdbc:postgresql://java_DB:5432/blueprints
-    - SPRING_DATASOURCE_USERNAME=postgres
-    - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://java_DB:5432/blueprints
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
     depends_on:
       - java_DB
-
 
   java_DB:
     image: postgres:13.3

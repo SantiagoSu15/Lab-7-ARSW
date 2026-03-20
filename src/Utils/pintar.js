@@ -1,11 +1,17 @@
-export function drawAll(upd, setBoard) {
+export function drawAll(upd, setBoard, { replace = true } = {}) {
   if (!upd || !upd.points || !setBoard) return;
 
   setBoard(prev =>
     prev.map((row, y) =>
       row.map((cell, x) => {
         const match = upd.points.some(p => p.x === x && p.y === y);
-        return { ...cell, revelado: match };  
+        if (replace) {
+          // Carga/repaint completo (ej. al cambiar de plano).
+          return { ...cell, revelado: match };
+        }
+
+        // Modo incremental: acumula (no apaga puntos previamente revelados).
+        return { ...cell, revelado: Boolean(cell.revelado) || match };
       })
     )
   );
