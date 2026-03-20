@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useState } from "react"
 
 type BarraProps = {
     tech: string;
@@ -10,6 +10,15 @@ type BarraProps = {
   };
 
   export const BarraIzq = ({ tech, setTech, author, setAuthor, name, setName }: BarraProps) => {
+    const[creando,setCreando] = useState(false);
+
+    function crearBluepoint(){
+        setCreando(true);
+    }
+
+
+
+
     return (
       <div id="barraIzq">
         <label>Tecnología:</label>
@@ -19,8 +28,11 @@ type BarraProps = {
         </select>
         <input value={author} onChange={e => setAuthor(e.target.value)} placeholder="autor"/>
         <input value={name} onChange={e => setName(e.target.value)} placeholder="plano"/>
-        <button>Nuevo Bluepoint</button>
+        {!creando && <button onClick={crearBluepoint}>Nuevo Bluepoint</button>}
+        <button disabled={creando}>Actualizar Bluepoint</button>
         <button>Eliminar Bluepoint</button>
+        {creando && <button onClick={crearBluepoint}>Guardar Bluepoint</button>}
+
       </div>
     );
   };

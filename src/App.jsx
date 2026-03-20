@@ -7,6 +7,9 @@ import TableroComponent from './components/TableroComponent'
 import { crearTablero } from './Utils/crearTablero'
 import { BarraIzq } from './components/BarraIzquierda'
 import {drawAll,pintarCelda} from './Utils/pintar.js'
+import { bluePrintApi } from '../services/apiConection.js'
+
+
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? 'http://localhost:8080' // Spring
 const IO_BASE  = import.meta.env.VITE_IO_BASE  ?? 'http://localhost:3001' // Node/Socket.IO
@@ -22,13 +25,48 @@ export default function App() {
   const unsubRef = useRef(null)
   const socketRef = useRef(null)
 
-  useEffect(() => {
-    fetch(`${tech==='stomp'?API_BASE:IO_BASE}/api/blueprints/${author}/${name}`)
-      .then(r=>r.json())
-      .then(data => drawAll(data,setBoard))
-  }, [tech, author, name])
 
-  
+  useEffect(()=>{
+    const bluePrintRequest = {
+      autor: 'juan',
+      bName: 'plano-1',
+      puntos: [[0,0], [1,1]]
+    };
+    async function primer(){
+      await bluePrintApi.createBluePoint(bluePrintRequest)
+    }
+
+    try{
+      primer()
+
+    }catch(err){
+      console.log(console.error(err))
+    }
+  },[]);
+
+
+
+
+
+  useEffect(() => {
+    async function  cargar (){
+      if(!name){
+        const res = await bluePrintApi.getByAuthor(author);
+        const firstKey = Object.keys(res)[0];
+        const firstBlueprint = res[firstKey];
+        drawAll(firstBlueprint, setBoard);
+        return;
+       }
+      if(name && author){
+        const res = await bluePrintApi.getByAuthorAndBname(author,name);
+        drawAll(res, setBoard);
+      }
+    }
+    cargar();
+  }, [author, name]);
+
+
+
 
   useEffect(() => {
     unsubRef.current?.(); unsubRef.current = null
@@ -57,6 +95,9 @@ export default function App() {
       socketRef.current?.disconnect?.()
     }
   }, [tech, author, name])
+
+
+
 
   function handleClickCelda(fila, col) {
     const point = { x: col, y: fila };

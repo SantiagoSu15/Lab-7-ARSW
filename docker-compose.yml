@@ -1,0 +1,30 @@
+services:
+  web:
+    build: .
+    ports:
+      - '5173:4173'
+    environment:
+      - VITE_API_BASE_URL=http://backend:8080/api
+    depends_on:
+      - backend
+  backend:
+    image: ghcr.io/santiagosu15/lab-5-arsw:latest
+    ports:
+      - '8080:8080'
+    environment:
+    - VITE_API_BASE_URL=http://backend:8080
+    - SPRING_DATASOURCE_URL=jdbc:postgresql://java_DB:5432/blueprints
+    - SPRING_DATASOURCE_USERNAME=postgres
+    - SPRING_DATASOURCE_PASSWORD=postgres
+    depends_on:
+      - java_DB
+
+
+  java_DB:
+    image: postgres:13.3
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=blueprints
