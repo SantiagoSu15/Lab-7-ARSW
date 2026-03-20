@@ -1,0 +1,20 @@
+{
+  "name": "blueprints-socketio-backend",
+  "version": "1.0.0",
+  "description": "Backend Socket.IO para BluePrints P4 - Colaboración en tiempo real",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "keywords": ["socket.io", "blueprints", "real-time"],
+  "author": "ARSW Lab",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {}
+}
