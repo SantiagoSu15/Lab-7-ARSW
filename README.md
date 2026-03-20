@@ -36,73 +36,102 @@ cd ..
 
 **Dockerfile** (server/Dockerfile):
 ```dockerfile
-FROM node:24-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci || npm install
 
 COPY . .
 
 EXPOSE 3001
+ENV PORT=3001
 
-CMD ["node", "server.js"]
+CMD [ "npm", "run", "dev" ]
+
 ```
 
 **docker-compose.yml** (en raíz):
 ```yaml
-version: '3.8'
-
 services:
-  backend:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
-    environment:
-      - PORT=3001
-      - NODE_ENV=development
-    volumes:
-      - ./server:/app
-    restart: unless-stopped
-
-  frontend:
+  web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8080
+        VITE_API_BASE: http://localhost:8080
+        VITE_IO_BASE: http://localhost:3001
+        VITE_STOMP_BASE: http://localhost:8080
     ports:
-      - "5173:5173"
+      - '5173:4173'
+    depends_on:
+      - ws
+      - backend
+
+  ws:
+    build:
+      context: ./server
+    ports:
+      - '3001:3001'
     environment:
-      - VITE_IO_BASE=http://localhost:3001
-      - VITE_API_BASE=http://localhost:8080
-    volumes:
-      - ./src:/app/src
-    restart: unless-stopped
+      - PORT=3001
     depends_on:
       - backend
+
+  backend:
+    image: ghcr.io/santiagosu15/lab-5-arsw/java-app:lab-7
+    ports:
+      - '8080:8080'
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://java_DB:5432/blueprints
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+    depends_on:
+      - java_DB
+
+  java_DB:
+    image: postgres:13.3
+    ports:
+      - '5432:5432'
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=blueprints
 ```
 
 **Dockerfile** :
 ```dockerfile
-FROM node:24-alpine
-
+FROM node:20-alpine AS build
 WORKDIR /app
 
+ARG VITE_API_BASE_URL
+ARG VITE_API_BASE
+ARG VITE_IO_BASE
+ARG VITE_STOMP_BASE
+
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_API_BASE=$VITE_API_BASE
+ENV VITE_IO_BASE=$VITE_IO_BASE
+ENV VITE_STOMP_BASE=$VITE_STOMP_BASE
+
 COPY package*.json ./
-RUN npm install
-
+RUN npm ci || npm install
 COPY . .
+RUN npm run build
 
-EXPOSE 5173
-
-CMD ["npm", "run", "dev", "--", "--host"]
+FROM node:20-alpine
+WORKDIR /app
+RUN npm i -g serve
+COPY --from=build /app/dist ./dist
+EXPOSE 4173
+CMD [ "serve", "-s", "dist", "-l", "4173" ]
 ```
 
 ### Ejecución con Docker Compose
 ```bash
-# Levantar ambos servicios
+# Levantar todos los servicios
 docker-compose up
 
 # En background
@@ -119,6 +148,7 @@ docker-compose logs -f frontend
 **Resultado:**
 - Backend: `http://localhost:3001`
 - Frontend: `http://localhost:5173`
+- Backend Spring: `http://localhost:8080`
 
 ---
 
@@ -182,11 +212,15 @@ VITE_IO_BASE=http://localhost:3001       # Socket.IO WebSocket
 
 ## Endpoints Usados
 
-### REST API (Backend)
+### REST API (Spring)
 
 | Método | Endpoint | Descripción | Ejemplo |
 |--------|----------|-------------|---------|
-| **GET** | `/api/blueprints/:author/:name` | Obtiene puntos iniciales del plano | `GET /api/blueprints/juan/plano-1` |
+| **GET** | `/blueprints/{author}` | Lista blueprints de un autor | `GET /blueprints/juan` |
+| **GET** | `/blueprints/{author}/{name}` | Obtiene puntos iniciales del plano | `GET /blueprints/juan/plano-1` |
+| **POST** | `/blueprints` | Crea blueprint nuevo | `POST /blueprints` |
+| **PUT** | `/blueprints/{author}/{name}/points` | Actualiza puntos del blueprint | `PUT /blueprints/juan/plano-1/points` |
+| **DELETE** | `/blueprints/{author}/{name}` | Elimina un blueprint | `DELETE /blueprints/juan/plano-1` |
 
 **Respuesta:**
 ```json
@@ -203,8 +237,33 @@ VITE_IO_BASE=http://localhost:3001       # Socket.IO WebSocket
 
 **Prueba rápida:**
 ```bash
-curl http://localhost:3001/api/blueprints/juan/plano-1
+curl http://localhost:8080/blueprints/juan/plano-1
 ```
+
+---
+
+### Eventos Tiempo Real (Socket.IO - Node)
+
+| Dirección | Evento | Payload | Descripción |
+|-----------|--------|---------|-------------|
+| Cliente -> Servidor | `join-room` | `room` (`blueprints.{author}.{name}`) | Une el cliente a la sala del blueprint |
+| Cliente -> Servidor | `draw-event` | `{ room, author, name, point: {x,y} }` | Envía el punto dibujado |
+| Servidor -> Clientes | `blueprint-update` | `{ author, name, points: [point] }` | Broadcast del nuevo punto a la sala |
+
+---
+
+## Referencia Rapida: Dónde se usa cada endpoint/evento
+
+| Endpoint / Evento | Dónde se usa |
+|-------------------|--------------|
+| `GET /blueprints/{author}` | `services/apiConection.js` -> `bluePrintApi.getByAuthor()`; invocado desde `src/App.jsx` en `cargar()` cuando no hay nombre |
+| `GET /blueprints/{author}/{name}` | `services/apiConection.js` -> `bluePrintApi.getByAuthorAndBname()`; invocado desde `src/App.jsx` en `cargar()` |
+| `POST /blueprints` | `services/apiConection.js` -> `bluePrintApi.createBluePoint()`; invocado en `src/components/BarraIzquierda.tsx` (`onGuardar`) y en `src/App.jsx` (carga inicial) |
+| `PUT /blueprints/{author}/{name}/points` | `services/apiConection.js` -> `bluePrintApi.editBluePoint()`; invocado en `src/components/BarraIzquierda.tsx` (`onActualizar`) |
+| `DELETE /blueprints/{author}/{name}` | `services/apiConection.js` -> `bluePrintApi.deleteBluePoint()`; invocado en `src/components/BarraIzquierda.tsx` (`onEliminar`) |
+| `join-room` | Emitido en `src/App.jsx` al conectar Socket.IO (`useEffect` de `tech/author/name`) y manejado en `server/server.js` |
+| `draw-event` | Emitido en `src/App.jsx` (`handleClickCelda`) y manejado en `server/server.js` |
+| `blueprint-update` | Emitido por `server/server.js` y escuchado en `src/App.jsx` para repintar (`drawAll`) |
 
 ---
 

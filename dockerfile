@@ -1,7 +1,6 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Vite lee estas variables en tiempo de build; por eso entran vía build-args.
 ARG VITE_API_BASE_URL
 ARG VITE_API_BASE
 ARG VITE_IO_BASE
@@ -17,7 +16,6 @@ RUN npm ci || npm install
 COPY . .
 RUN npm run build
 
-# Server stage (static server)
 FROM node:20-alpine
 WORKDIR /app
 RUN npm i -g serve
