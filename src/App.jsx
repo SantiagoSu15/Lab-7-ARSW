@@ -19,6 +19,7 @@ export default function App() {
   const [author, setAuthor] = useState('juan')
   const [name, setName] = useState('plano-1')
   const [board, setBoard] = useState(crearTablero(21))
+  const initialized = useRef(false)
 
 
   const stompRef = useRef(null)
@@ -27,6 +28,8 @@ export default function App() {
 
 
   useEffect(()=>{
+    if (initialized.current) return  
+    initialized.current = true
     const bluePrintRequest = {
       autor: 'juan',
       bName: 'plano-1',
@@ -78,7 +81,7 @@ export default function App() {
       stompRef.current = client
       client.onConnect = () => {
         unsubRef.current = subscribeBlueprint(client, author, name, (upd)=> {
-          drawAll({ points: upd.points })
+          drawAll({ points: upd.points },setBoard)
         })
       }
       client.activate()
@@ -87,7 +90,7 @@ export default function App() {
       socketRef.current = s
       const room = `blueprints.${author}.${name}`
       s.emit('join-room', room)
-      s.on('blueprint-update', (upd)=> drawAll({ points: upd.points }))
+      s.on('blueprint-update', (upd)=> drawAll({ points: upd.points },setBoard))
     }
     return () => {
       unsubRef.current?.(); unsubRef.current = null
